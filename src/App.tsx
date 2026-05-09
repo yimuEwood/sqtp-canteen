@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { FoodItem, FilterState } from './types';
-import { initialFoodData, categories, canteens } from './data';
+import { supabase } from './lib/supabase';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import StatsSection from './components/StatsSection';
@@ -11,9 +11,13 @@ import Footer from './components/Footer';
 
 type Page = 'home' | 'data' | 'charts' | 'about';
 
+const CATEGORIES = ['荤菜盖饭', '素菜', '荤菜', '面食', '蛋类', '汤类/火锅', '豆制品', '凉菜'];
+const CANTEENS = ['第一食堂', '第二食堂', '第三食堂'];
+
 const App: React.FC = () => {
   const [page, setPage] = useState<Page>('home');
-  const [foods, setFoods] = useState<FoodItem[]>(initialFoodData);
+  const [foods, setFoods] = useState<FoodItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<FoodItem | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [filter, setFilter] = useState<FilterState>({
@@ -24,6 +28,20 @@ const App: React.FC = () => {
     maxCalories: 1000,
     searchQuery: '',
   });
+
+  // 从 Supabase 加载数据
+  useEffect(() => {
+    const loadFoods = async () => {
+      const { data, error } = await supabase.from('foods').select('*').order('id');
+      if (error) {
+        console.error('加载数据失败:', error);
+      } else if (data) {
+        setFoods(data as FoodItem[]);
+      }
+      setLoading(false);
+    };
+    loadFoods();
+  }, []);
 
   const filteredFoods = useMemo(() => {
     return foods.filter(f => {
@@ -36,20 +54,65 @@ const App: React.FC = () => {
     });
   }, [foods, filter]);
 
-  const handleSave = (item: FoodItem) => {
+  const handleSave = async (item: FoodItem) => {
     if (isAdding) {
-      setFoods(prev => [...prev, { ...item, id: Date.now().toString() }]);
+      const { data, error } = await supabase.from('foods').insert([{
+        id: item.id ? Number(item.id) : Date.now(),
+        name: item.name,
+        category: item.category,
+        canteen: item.canteen,
+        price: item.price,
+        calories: item.calories,
+        protein: item.protein,
+        fat: item.fat,
+        carbs: item.carbs,
+        fiber: item.fiber,
+        sodium: item.sodium,
+        nutritionScore: item.nutritionScore,
+        valueScore: item.valueScore,
+      }]).select();
+      if (error) {
+        console.error('添加失败:', error);
+        alert('添加失败，请重试');
+        return;
+      }
+      if (data) setFoods(prev => [...prev, ...data as FoodItem[]]);
       setIsAdding(false);
+      setEditingItem(null);
     } else {
+      const { error } = await supabase.from('foods').update({
+        name: item.name,
+        category: item.category,
+        canteen: item.canteen,
+        price: item.price,
+        calories: item.calories,
+        protein: item.protein,
+        fat: item.fat,
+        carbs: item.carbs,
+        fiber: item.fiber,
+        sodium: item.sodium,
+        nutritionScore: item.nutritionScore,
+        valueScore: item.valueScore,
+      }).eq('id', Number(item.id));
+      if (error) {
+        console.error('更新失败:', error);
+        alert('更新失败，请重试');
+        return;
+      }
       setFoods(prev => prev.map(f => f.id === item.id ? item : f));
       setEditingItem(null);
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('确认删除该餐品记录？')) {
-      setFoods(prev => prev.filter(f => f.id !== id));
+  const handleDelete = async (id: string) => {
+    if (!confirm('确认删除该餐品记录？')) return;
+    const { error } = await supabase.from('foods').delete().eq('id', Number(id));
+    if (error) {
+      console.error('删除失败:', error);
+      alert('删除失败，请重试');
+      return;
     }
+    setFoods(prev => prev.filter(f => f.id !== id));
   };
 
   const handleAddNew = () => {
@@ -57,8 +120,8 @@ const App: React.FC = () => {
     setEditingItem({
       id: '',
       name: '',
-      category: categories[0] || '',
-      canteen: canteens[0] || '',
+      category: CATEGORIES[0],
+      canteen: CANTEENS[0],
       window: '',
       price: 0,
       weight: 0,
@@ -73,6 +136,14 @@ const App: React.FC = () => {
       notes: '',
     });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-[#1E40AF] text-lg font-medium">加载中...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -125,7 +196,7 @@ const App: React.FC = () => {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6] cursor-pointer"
                 >
                   <option value="">全部分类</option>
-                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
@@ -136,7 +207,7 @@ const App: React.FC = () => {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6] cursor-pointer"
                 >
                   <option value="">全部食堂</option>
-                  {canteens.map(c => <option key={c} value={c}>{c}</option>)}
+                  {CANTEENS.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
