@@ -4,7 +4,7 @@ export interface FoodItem {
   category: string;
   canteen: string;
   window: string;
-  price: number;
+  price: number; // grams
   weight: number; // grams
   calories: number; // kcal
   protein: number; // g
@@ -15,6 +15,13 @@ export interface FoodItem {
   valueScore: number; // calories per yuan
   nutritionScore: number; // 0-100
   notes: string;
+}
+
+export interface Profile {
+  id: string;
+  email: string;
+  role: 'pending' | 'approved' | 'admin';
+  created_at: string;
 }
 
 export type SortField = keyof FoodItem;

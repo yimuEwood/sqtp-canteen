@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { FoodItem, FilterState } from './types';
 import { supabase } from './lib/supabase';
+import { useAuth } from './hooks/useAuth';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import StatsSection from './components/StatsSection';
@@ -8,8 +9,10 @@ import FoodTable from './components/FoodTable';
 import FoodEditModal from './components/FoodEditModal';
 import ChartsSection from './components/ChartsSection';
 import Footer from './components/Footer';
+import AuthModal from './components/AuthModal';
+import AdminPanel from './components/AdminPanel';
 
-type Page = 'home' | 'data' | 'charts' | 'about';
+type Page = 'home' | 'data' | 'charts' | 'about' | 'admin';
 
 const CATEGORIES = ['荤菜盖饭', '素菜', '荤菜', '面食', '蛋类', '汤类/火锅', '豆制品', '凉菜'];
 const CANTEENS = ['第一食堂', '第二食堂', '第三食堂'];
@@ -20,6 +23,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<FoodItem | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const [filter, setFilter] = useState<FilterState>({
     category: '',
     canteen: '',
@@ -28,6 +32,19 @@ const App: React.FC = () => {
     maxCalories: 1000,
     searchQuery: '',
   });
+
+  // 使用认证 Hook
+  const {
+    user,
+    profile,
+    loading: authLoading,
+    isApproved,
+    isAdmin,
+    signUp,
+    signIn,
+    signOut,
+    refreshProfile,
+  } = useAuth();
 
   // 从 Supabase 加载数据
   useEffect(() => {
@@ -54,7 +71,15 @@ const App: React.FC = () => {
     });
   }, [foods, filter]);
 
+  // 检查是否有编辑权限
+  const canEdit = isApproved;
+
   const handleSave = async (item: FoodItem) => {
+    if (!isApproved) {
+      alert('您没有编辑权限，请联系管理员申请');
+      return;
+    }
+
     if (isAdding) {
       const { data, error } = await supabase.from('foods').insert([{
         id: item.id ? Number(item.id) : Date.now(),
@@ -105,6 +130,10 @@ const App: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!isApproved) {
+      alert('您没有删除权限，请联系管理员申请');
+      return;
+    }
     if (!confirm('确认删除该餐品记录？')) return;
     const { error } = await supabase.from('foods').delete().eq('id', Number(id));
     if (error) {
@@ -116,6 +145,10 @@ const App: React.FC = () => {
   };
 
   const handleAddNew = () => {
+    if (!isApproved) {
+      setShowAuth(true);
+      return;
+    }
     setIsAdding(true);
     setEditingItem({
       id: '',
@@ -137,7 +170,8 @@ const App: React.FC = () => {
     });
   };
 
-  if (loading) {
+  // 页面加载中（包括 auth 检测）
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-[#1E40AF] text-lg font-medium">加载中...</div>
@@ -147,7 +181,14 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <Navbar page={page} setPage={setPage} />
+      <Navbar
+        page={page}
+        setPage={setPage}
+        user={user}
+        profile={profile}
+        onLogin={() => setShowAuth(true)}
+        onLogout={() => signOut()}
+      />
 
       {page === 'home' && (
         <>
@@ -162,16 +203,24 @@ const App: React.FC = () => {
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-[#1E3A8A]">餐品数据库</h1>
-              <p className="text-gray-500 mt-1">共收录 <span className="text-[#1E40AF] font-semibold">{foods.length}</span> 种餐品，筛选后显示 <span className="text-[#F59E0B] font-semibold">{filteredFoods.length}</span> 种</p>
+              <p className="text-gray-500 mt-1">
+                共收录 <span className="text-[#1E40AF] font-semibold">{foods.length}</span> 种餐品，
+                筛选后显示 <span className="text-[#F59E0B] font-semibold">{filteredFoods.length}</span> 种
+              </p>
             </div>
             <button
               onClick={handleAddNew}
-              className="flex items-center gap-2 bg-[#1E40AF] hover:bg-[#1E3A8A] text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 cursor-pointer"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 cursor-pointer ${
+                canEdit
+                  ? 'bg-[#1E40AF] hover:bg-[#1E3A8A] text-white'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+              disabled={!canEdit}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              添加餐品
+              {canEdit ? '添加餐品' : '登录后添加'}
             </button>
           </div>
 
@@ -225,8 +274,12 @@ const App: React.FC = () => {
 
           <FoodTable
             foods={filteredFoods}
-            onEdit={(item) => setEditingItem(item)}
+            onEdit={(item) => {
+              if (!canEdit) { setShowAuth(true); return; }
+              setEditingItem(item);
+            }}
             onDelete={handleDelete}
+            canEdit={canEdit}
           />
         </div>
       )}
@@ -244,14 +297,31 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* 管理员页面 */}
+      {page === 'admin' && isAdmin && (
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <h1 className="text-2xl font-bold text-[#1E3A8A] mb-6">用户管理面板</h1>
+          <AdminPanel onRefresh={refreshProfile} />
+        </div>
+      )}
+
       <Footer />
 
-      {(editingItem || isAdding) && (
+      {(editingItem || isAdding) && canEdit && (
         <FoodEditModal
           item={editingItem!}
           isNew={isAdding}
           onSave={handleSave}
           onClose={() => { setEditingItem(null); setIsAdding(false); }}
+        />
+      )}
+
+      {/* 登录/注册弹窗 */}
+      {showAuth && (
+        <AuthModal
+          onClose={() => setShowAuth(false)}
+          onSignUp={signUp}
+          onSignIn={signIn}
         />
       )}
     </div>

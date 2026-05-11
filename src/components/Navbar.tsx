@@ -1,19 +1,28 @@
 import React from 'react';
 
-type Page = 'home' | 'data' | 'charts' | 'about';
+type Page = 'home' | 'data' | 'charts' | 'about' | 'admin';
 
 interface NavbarProps {
   page: Page;
   setPage: (p: Page) => void;
+  user: any | null;
+  profile: { role: string } | null;
+  onLogin: () => void;
+  onLogout: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ page, setPage }) => {
-  const navItems: { id: Page; label: string }[] = [
+const Navbar: React.FC<NavbarProps> = ({ page, setPage, user, profile, onLogin, onLogout }) => {
+  const navItems: { id: Page; label: string; needAuth?: boolean }[] = [
     { id: 'home', label: '首页' },
     { id: 'data', label: '餐品数据' },
     { id: 'charts', label: '数据可视化' },
     { id: 'about', label: '关于项目' },
   ];
+
+  // 如果是 admin，显示管理按钮
+  if (profile?.role === 'admin') {
+    navItems.push({ id: 'admin', label: '用户管理' });
+  }
 
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
@@ -44,6 +53,38 @@ const Navbar: React.FC<NavbarProps> = ({ page, setPage }) => {
               {item.label}
             </button>
           ))}
+
+          {/* 用户登录/信息区域 */}
+          {!user ? (
+            <button
+              onClick={onLogin}
+              className="ml-2 px-4 py-2 bg-[#1E40AF] hover:bg-[#1E3A8A] text-white rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer"
+            >
+              登录 / 注册
+            </button>
+          ) : (
+            <div className="ml-2 flex items-center gap-2 pl-4 border-l border-gray-200">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs text-gray-400">当前用户</p>
+                <p className="text-sm font-medium text-[#1E3A8A] truncate max-w-[120px]">{user.email}</p>
+              </div>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                profile?.role === 'admin' ? 'bg-red-100 text-red-700' :
+                profile?.role === 'approved' ? 'bg-green-100 text-green-700' :
+                'bg-amber-100 text-amber-700'
+              }`}>
+                {profile?.role === 'admin' ? '管理员' :
+                 profile?.role === 'approved' ? '已批准' :
+                 '待审批'}
+              </span>
+              <button
+                onClick={onLogout}
+                className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-sm cursor-pointer transition-colors"
+              >
+                退出
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </nav>
