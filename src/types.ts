@@ -35,3 +35,31 @@ export interface FilterState {
   maxCalories: number;
   searchQuery: string;
 }
+
+// 餐品变更申请
+export interface FoodProposal {
+  id: string;
+  user_id: string;
+  action: 'create' | 'update' | 'delete';
+  food_id: number | null;
+  data: {
+    name: string;
+    category: string;
+    canteen: string;
+    window: string;
+    price: number;
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+    fiber: number;
+    sodium: number;
+    nutritionScore: number;
+    valueScore: number;
+  } | null;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+}

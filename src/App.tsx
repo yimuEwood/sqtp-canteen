@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { FoodItem, FilterState } from './types';
+import { FoodItem, FilterState, FoodProposal } from './types';
 import { supabase } from './lib/supabase';
 import { useAuth } from './hooks/useAuth';
 import Navbar from './components/Navbar';
@@ -33,13 +33,17 @@ const App: React.FC = () => {
     searchQuery: '',
   });
 
+  // 审批申请列表（管理员用）
+  const [proposals, setProposals] = useState<FoodProposal[]>([]);
+
   // 使用认证 Hook
   const {
     user,
     profile,
     loading: authLoading,
-    isApproved,
     isAdmin,
+    isApproved,
+    isPending,
     signUp,
     signIn,
     signOut,
@@ -60,6 +64,23 @@ const App: React.FC = () => {
     loadFoods();
   }, []);
 
+  // 管理员：加载审批申请列表
+  useEffect(() => {
+    if (isAdmin) {
+      loadProposals();
+    }
+  }, [isAdmin]);
+
+  const loadProposals = async () => {
+    const { data, error } = await supabase
+      .from('food_proposals')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) {
+      setProposals(data as FoodProposal[]);
+    }
+  };
+
   const filteredFoods = useMemo(() => {
     return foods.filter(f => {
       if (filter.category && f.category !== filter.category) return false;
@@ -71,81 +92,174 @@ const App: React.FC = () => {
     });
   }, [foods, filter]);
 
-  // 检查是否有编辑权限
-  const canEdit = isApproved;
+  // 检查是否有编辑权限（管理员直接生效，普通用户提交申请）
+  const canEdit = isApproved || isAdmin;
 
+  // ========== 提交审批申请（普通已审核用户）==========
+  const submitProposal = async (action: 'create' | 'update' | 'delete', item: FoodItem) => {
+    if (!user) return;
+
+    const foodData = (action === 'delete') ? null : {
+      name: item.name,
+      category: item.category,
+      canteen: item.canteen,
+      window: item.window || '',
+      price: item.price,
+      calories: item.calories,
+      protein: item.protein,
+      fat: item.fat,
+      carbs: item.carbs,
+      fiber: item.fiber,
+      sodium: item.sodium,
+      nutritionScore: item.nutritionScore,
+      valueScore: item.valueScore,
+    };
+
+    const { error } = await supabase.from('food_proposals').insert([{
+      user_id: user.id,
+      action,
+      food_id: (action === 'delete' || action === 'update') ? Number(item.id) : null,
+      data: foodData,
+      status: 'pending',
+    }]);
+
+    if (error) {
+      console.error('提交申请失败:', error);
+      alert('提交申请失败，请重试');
+    } else {
+      alert('已提交申请，等待管理员审批后生效');
+    }
+  };
+
+  // ========== 保存（管理员直接生效，普通用户提交申请）==========
   const handleSave = async (item: FoodItem) => {
-    if (!isApproved) {
+    if (!canEdit) {
       alert('您没有编辑权限，请联系管理员申请');
       return;
     }
 
-    if (isAdding) {
-      const { data, error } = await supabase.from('foods').insert([{
-        id: item.id ? Number(item.id) : Date.now(),
-        name: item.name,
-        category: item.category,
-        canteen: item.canteen,
-        price: item.price,
-        calories: item.calories,
-        protein: item.protein,
-        fat: item.fat,
-        carbs: item.carbs,
-        fiber: item.fiber,
-        sodium: item.sodium,
-        nutritionScore: item.nutritionScore,
-        valueScore: item.valueScore,
-      }]).select();
-      if (error) {
-        console.error('添加失败:', error);
-        alert('添加失败，请重试');
-        return;
+    // 管理员：直接操作
+    if (isAdmin) {
+      if (isAdding) {
+        const { data, error } = await supabase.from('foods').insert([{
+          id: item.id ? Number(item.id) : Date.now(),
+          name: item.name,
+          category: item.category,
+          canteen: item.canteen,
+          window: item.window,
+          price: item.price,
+          calories: item.calories,
+          protein: item.protein,
+          fat: item.fat,
+          carbs: item.carbs,
+          fiber: item.fiber,
+          sodium: item.sodium,
+          nutritionScore: item.nutritionScore,
+          valueScore: item.valueScore,
+        }]).select();
+        if (error) {
+          console.error('添加失败:', error);
+          alert('添加失败，请重试');
+          return;
+        }
+        if (data) setFoods(prev => [...prev, ...data as FoodItem[]]);
+      } else {
+        const { error } = await supabase.from('foods').update({
+          name: item.name,
+          category: item.category,
+          canteen: item.canteen,
+          window: item.window,
+          price: item.price,
+          calories: item.calories,
+          protein: item.protein,
+          fat: item.fat,
+          carbs: item.carbs,
+          fiber: item.fiber,
+          sodium: item.sodium,
+          nutritionScore: item.nutritionScore,
+          valueScore: item.valueScore,
+        }).eq('id', Number(item.id));
+        if (error) {
+          console.error('更新失败:', error);
+          alert('更新失败，请重试');
+          return;
+        }
+        setFoods(prev => prev.map(f => f.id === item.id ? item : f));
       }
-      if (data) setFoods(prev => [...prev, ...data as FoodItem[]]);
       setIsAdding(false);
       setEditingItem(null);
-    } else {
-      const { error } = await supabase.from('foods').update({
-        name: item.name,
-        category: item.category,
-        canteen: item.canteen,
-        price: item.price,
-        calories: item.calories,
-        protein: item.protein,
-        fat: item.fat,
-        carbs: item.carbs,
-        fiber: item.fiber,
-        sodium: item.sodium,
-        nutritionScore: item.nutritionScore,
-        valueScore: item.valueScore,
-      }).eq('id', Number(item.id));
-      if (error) {
-        console.error('更新失败:', error);
-        alert('更新失败，请重试');
-        return;
-      }
-      setFoods(prev => prev.map(f => f.id === item.id ? item : f));
-      setEditingItem(null);
+      return;
     }
+
+    // 普通已审核用户：提交申请
+    await submitProposal(isAdding ? 'create' : 'update', item);
+    setIsAdding(false);
+    setEditingItem(null);
   };
 
+  // ========== 删除（管理员直接生效，普通用户提交申请）==========
   const handleDelete = async (id: string) => {
-    if (!isApproved) {
+    if (!canEdit) {
       alert('您没有删除权限，请联系管理员申请');
       return;
     }
-    if (!confirm('确认删除该餐品记录？')) return;
-    const { error } = await supabase.from('foods').delete().eq('id', Number(id));
-    if (error) {
-      console.error('删除失败:', error);
-      alert('删除失败，请重试');
+
+    const item = foods.find(f => String(f.id) === String(id));
+    if (!item) return;
+
+    // 管理员：直接删除
+    if (isAdmin) {
+      if (!confirm('确认删除该餐品记录？')) return;
+      const { error } = await supabase.from('foods').delete().eq('id', Number(id));
+      if (error) {
+        console.error('删除失败:', error);
+        alert('删除失败，请重试');
+        return;
+      }
+      setFoods(prev => prev.filter(f => String(f.id) !== String(id)));
       return;
     }
-    setFoods(prev => prev.filter(f => f.id !== id));
+
+    // 普通已审核用户：提交删除申请
+    if (!confirm('确认提交删除申请？审批通过后会生效。')) return;
+    await submitProposal('delete', item);
+  };
+
+  // ========== 管理员审批==========
+  const handleApproveProposal = async (proposalId: string) => {
+    if (!isAdmin) return;
+    const { error } = await supabase.rpc('apply_food_proposal', { proposal_id: proposalId });
+    if (error) {
+      console.error('审批失败:', error);
+      alert('审批失败：' + error.message);
+      return;
+    }
+    alert('审批通过，操作已生效');
+    loadProposals();
+    // 重新加载 foods
+    const { data } = await supabase.from('foods').select('*').order('id');
+    if (data) setFoods(data as FoodItem[]);
+  };
+
+  const handleRejectProposal = async (proposalId: string, note: string) => {
+    if (!isAdmin) return;
+    const { error } = await supabase.from('food_proposals').update({
+      status: 'rejected',
+      admin_note: note,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user!.id,
+    }).eq('id', proposalId);
+    if (error) {
+      console.error('拒绝失败:', error);
+      alert('操作失败，请重试');
+      return;
+    }
+    alert('已拒绝该申请');
+    loadProposals();
   };
 
   const handleAddNew = () => {
-    if (!isApproved) {
+    if (!isApproved && !isAdmin) {
       setShowAuth(true);
       return;
     }
@@ -207,6 +321,9 @@ const App: React.FC = () => {
                 共收录 <span className="text-[#1E40AF] font-semibold">{foods.length}</span> 种餐品，
                 筛选后显示 <span className="text-[#F59E0B] font-semibold">{filteredFoods.length}</span> 种
               </p>
+              {!isAdmin && isApproved && (
+                <p className="text-amber-600 text-sm mt-1">⚠️ 您的添加/修改/删除操作需管理员审批后生效</p>
+              )}
             </div>
             <button
               onClick={handleAddNew}
@@ -297,11 +414,17 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* 管理员页面 */}
+      {/* 管理员页面：用户审批 + 餐品变更审批 */}
       {page === 'admin' && isAdmin && (
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold text-[#1E3A8A] mb-6">用户管理面板</h1>
-          <AdminPanel onRefresh={refreshProfile} />
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <h1 className="text-2xl font-bold text-[#1E3A8A] mb-6">管理面板</h1>
+          <AdminPanel
+            onRefresh={refreshProfile}
+            proposals={proposals}
+            onApproveProposal={handleApproveProposal}
+            onRejectProposal={handleRejectProposal}
+            onProposalsChange={loadProposals}
+          />
         </div>
       )}
 
