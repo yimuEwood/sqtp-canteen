@@ -109,23 +109,31 @@ const App: React.FC = () => {
       protein: item.protein,
       fat: item.fat,
       carbs: item.carbs,
-      fiber: item.fiber,
-      sodium: item.sodium,
-      nutritionScore: item.nutritionScore,
-      valueScore: item.valueScore,
+      fiber: item.fiber ?? 0,
+      sodium: item.sodium ?? 0,
+      nutritionScore: item.nutritionScore ?? 0,
+      valueScore: item.valueScore ?? 0,
     };
 
-    const { error } = await supabase.from('food_proposals').insert([{
+    const proposalData: any = {
       user_id: user.id,
       action,
-      food_id: (action === 'delete' || action === 'update') ? Number(item.id) : null,
       data: foodData,
       status: 'pending',
-    }]);
+    };
+
+    // update 和 delete 需要关联已有餐品 ID
+    if (action !== 'create' && item.id) {
+      proposalData.food_id = Number(item.id);
+    }
+
+    console.log('提交申请数据:', JSON.stringify(proposalData, null, 2));
+
+    const { error } = await supabase.from('food_proposals').insert([proposalData]);
 
     if (error) {
       console.error('提交申请失败:', error);
-      alert('提交申请失败，请重试');
+      alert('提交申请失败：' + error.message + '，请重试');
     } else {
       alert('已提交申请，等待管理员审批后生效');
     }

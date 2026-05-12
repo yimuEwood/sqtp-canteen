@@ -84,6 +84,18 @@ export function useAuth() {
       return { success: false, error: errorMsg };
     }
 
+    // 注册成功后自动创建 profile 记录
+    if (data?.user) {
+      const { error: profileError } = await supabase.from('profiles').insert([{
+        id: data.user.id,
+        email: email,
+        role: 'pending',
+      }]);
+      if (profileError) {
+        console.error('创建 profile 失败:', profileError);
+      }
+    }
+
     return { success: true, error: '' };
   };
 
