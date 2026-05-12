@@ -31,8 +31,19 @@ export function useAuth() {
 
   // 初始化：检查当前登录状态
   useEffect(() => {
+    // 超时兜底：5秒内如果没有响应，强制结束 loading
+    const timeout = setTimeout(() => {
+      setAuth(prev => ({ ...prev, loading: false }));
+    }, 5000);
+
     // 获取当前 session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      clearTimeout(timeout);
+      if (error) {
+        console.error('获取 session 失败:', error);
+        setAuth({ user: null, profile: null, loading: false });
+        return;
+      }
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
         setAuth({ user: session.user, profile, loading: false });
@@ -53,7 +64,10 @@ export function useAuth() {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // 注册（只允许 @zju.edu.cn 邮箱）

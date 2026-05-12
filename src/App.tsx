@@ -295,8 +295,9 @@ const App: React.FC = () => {
   // 页面加载中（包括 auth 检测）
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center gap-4">
         <div className="text-[#1E40AF] text-lg font-medium">加载中...</div>
+        <p className="text-gray-400 text-sm">如长时间无响应，请<button className="underline text-[#1E40AF] cursor-pointer" onClick={() => window.location.reload()}>刷新页面</button></p>
       </div>
     );
   }
