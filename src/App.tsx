@@ -99,7 +99,7 @@ const App: React.FC = () => {
   const submitProposal = async (action: 'create' | 'update' | 'delete', item: FoodItem) => {
     if (!user) return;
 
-    const foodData = (action === 'delete') ? null : {
+    const foodData = action === 'delete' ? {} : {
       name: item.name,
       category: item.category,
       canteen: item.canteen,

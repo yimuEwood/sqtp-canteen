@@ -56,7 +56,7 @@ export interface FoodProposal {
     sodium: number;
     nutritionScore: number;
     valueScore: number;
-  } | null;
+  } | Record<string, never>; // delete 时为空对象 {}
   status: 'pending' | 'approved' | 'rejected';
   admin_note: string | null;
   created_at: string;
