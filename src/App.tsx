@@ -472,21 +472,23 @@ const App: React.FC = () => {
 
 const AboutPage: React.FC = () => (
   <div className="space-y-10">
+    {/* Header */}
     <div>
       <span className="inline-block bg-[#EFF6FF] text-[#1E40AF] text-xs font-semibold px-3 py-1 rounded-full mb-3">关于项目</span>
-      <h1 className="text-3xl font-bold text-[#1E3A8A] mb-4">SQTP 食堂营养数据项目</h1>
+      <h1 className="text-3xl font-bold text-[#1E3A8A] mb-4">浙江大学食堂餐品营养成分数据库</h1>
       <p className="text-gray-600 leading-relaxed text-lg">
-        本项目隶属于浙江大学学生科研训练计划（SQTP），旨在通过系统性拆解与测算学校食堂餐品的营养成分、热量、价格与性价比数据，为同学们提供科学、透明的餐饮参考。
+        本项目隶属于<strong>浙江大学学生科研训练计划（SQTP）</strong>，通过系统性拆解与测算学校食堂各餐品的热量、宏量营养素含量及性价比指标，构建可查询、可比较的餐品营养数据库，为师生日常选餐提供科学、透明的数据参考。
       </p>
     </div>
 
+    {/* Feature cards */}
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {[
-        { icon: '🔬', title: '科学测算', desc: '采用食物成分数据库与实测相结合的方式，系统估算每道餐品的宏量营养素含量。' },
-        { icon: '📊', title: '数据公开', desc: '所有数据在本平台完整公开，支持筛选、比较、导出，促进食堂餐饮信息透明化。' },
-        { icon: '💡', title: '理性选餐', desc: '基于热量密度、蛋白质比例、性价比等多维度评分，帮助同学做出更健康的饮食选择。' },
+        { icon: '🔬', title: '科学测算', desc: '基于中国食物成分表（第6版），结合实物称量与配比分析，系统估算每道餐品的宏量营养素含量。' },
+        { icon: '📊', title: '数据公开透明', desc: '所有餐品数据在本平台完整公开，支持多维度筛选、排序与可视化对比，促进食堂餐饮信息公开。' },
+        { icon: '💡', title: '理性选餐辅助', desc: '综合热量密度、蛋白质占比、性价比等维度构建评分体系，帮助师生做出更健康、更经济的饮食决策。' },
       ].map(item => (
-        <div key={item.title} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+        <div key={item.title} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="text-3xl mb-3">{item.icon}</div>
           <h3 className="font-semibold text-[#1E3A8A] text-lg mb-2">{item.title}</h3>
           <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
@@ -494,21 +496,38 @@ const AboutPage: React.FC = () => (
       ))}
     </div>
 
+    {/* Methodology */}
     <div className="bg-[#EFF6FF] rounded-xl p-8">
-      <h2 className="text-xl font-bold text-[#1E3A8A] mb-4">研究方法说明</h2>
-      <ul className="space-y-3 text-gray-600">
-        <li className="flex gap-3"><span className="text-[#1E40AF] font-bold flex-shrink-0">01.</span>现场采集食堂餐品实物，使用电子秤称量并分类记录各组分重量</li>
-        <li className="flex gap-3"><span className="text-[#1E40AF] font-bold flex-shrink-0">02.</span>参照中国食物成分表（第6版）查询各食材的营养素含量数据</li>
-        <li className="flex gap-3"><span className="text-[#1E40AF] font-bold flex-shrink-0">03.</span>根据各组分比例计算整份餐品的热量、蛋白质、脂肪、碳水化合物等指标</li>
-        <li className="flex gap-3"><span className="text-[#1E40AF] font-bold flex-shrink-0">04.</span>结合餐品售价计算热量/价格比（性价比）和综合营养评分</li>
+      <h2 className="text-xl font-bold text-[#1E3A8A] mb-5 flex items-center gap-2">
+        <svg className="w-5 h-5 text-[#1E40AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        研究方法
+      </h2>
+      <ul className="space-y-4 text-gray-600">
+        <li className="flex gap-3 items-start">
+          <span className="flex-shrink-0 w-7 h-7 bg-white rounded-lg flex items-center justify-center text-xs font-bold text-[#1E40AF] shadow-sm">1</span>
+          <div><strong>现场采集</strong>：对食堂在售餐品进行实物采集，使用电子秤称量并分类记录各组分重量</div>
+        </li>
+        <li className="flex gap-3 items-start">
+          <span className="flex-shrink-0 w-7 h-7 bg-white rounded-lg flex items-center justify-center text-xs font-bold text-[#1E40AF] shadow-sm">2</span>
+          <div><strong>成分查表</strong>：参照《中国食物成分表（第6版）》查询各类食材的标准营养素含量</div>
+        </li>
+        <li className="flex gap-3 items-start">
+          <span className="flex-shrink-0 w-7 h-7 bg-white rounded-lg flex items-center justify-center text-xs font-bold text-[#1E40AF] shadow-sm">3</span>
+          <div><strong>配比计算</strong>：根据各组分的实际重量比例计算整份餐品的热量及各项营养指标</div>
+        </li>
+        <li className="flex gap-3 items-start">
+          <span className="flex-shrink-0 w-7 h-7 bg-white rounded-lg flex items-center justify-center text-xs font-bold text-[#1E40AF] shadow-sm">4</span>
+          <div><strong>综合评估</strong>：结合售价计算热量/价格比（性价比）与多维度营养评分</div>
+        </li>
       </ul>
     </div>
 
+    {/* Team */}
     <div>
-      <h2 className="text-xl font-bold text-[#1E3A8A] mb-4">项目成员</h2>
+      <h2 className="text-xl font-bold text-[#1E3A8A] mb-4">项目团队</h2>
       <div className="flex flex-wrap gap-3">
-        {['杨潘（负责人）', '数据采集团队', '营养分析团队'].map(m => (
-          <span key={m} className="bg-white border border-[#BFDBFE] text-[#1E40AF] px-4 py-2 rounded-full text-sm font-medium">{m}</span>
+        {['杨潘（项目负责人）', '数据采集团队', '营养分析团队'].map(m => (
+          <span key={m} className="bg-white border border-[#BFDBFE] text-[#1E40AF] px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-50 transition-colors cursor-default">{m}</span>
         ))}
       </div>
     </div>
