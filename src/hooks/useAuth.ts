@@ -31,23 +31,39 @@ export function useAuth() {
 
   // 初始化：检查当前登录状态
   useEffect(() => {
-    // 超时兜底：5秒内如果没有响应，强制结束 loading
+    let settled = false;
+
+    // 超时兜底：3秒内如果没有响应，强制结束 loading
     const timeout = setTimeout(() => {
-      setAuth(prev => ({ ...prev, loading: false }));
-    }, 5000);
+      if (!settled) {
+        settled = true;
+        console.warn('Auth 初始化超时，强制跳过');
+        setAuth({ user: null, profile: null, loading: false });
+      }
+    }, 3000);
 
     // 获取当前 session
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (settled) return;
       clearTimeout(timeout);
+      settled = true;
       if (error) {
         console.error('获取 session 失败:', error);
-        setAuth({ user: null, profile: null, loading: false });
-        return;
       }
       if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        setAuth({ user: session.user, profile, loading: false });
+        fetchProfile(session.user.id).then(profile => {
+          setAuth({ user: session.user, profile, loading: false });
+        }).catch(() => {
+          setAuth({ user: session.user, profile: null, loading: false });
+        });
       } else {
+        setAuth({ user: null, profile: null, loading: false });
+      }
+    }).catch((err) => {
+      console.error('getSession 异常:', err);
+      if (!settled) {
+        clearTimeout(timeout);
+        settled = true;
         setAuth({ user: null, profile: null, loading: false });
       }
     });

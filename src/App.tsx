@@ -52,14 +52,24 @@ const App: React.FC = () => {
 
   // 从 Supabase 加载数据
   useEffect(() => {
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (!settled) { settled = true; setLoading(false); console.warn('数据加载超时'); }
+    }, 5000);
+
     const loadFoods = async () => {
-      const { data, error } = await supabase.from('foods').select('*').order('id');
-      if (error) {
-        console.error('加载数据失败:', error);
-      } else if (data) {
-        setFoods(data as FoodItem[]);
+      try {
+        const { data, error } = await supabase.from('foods').select('*').order('id');
+        if (error) {
+          console.error('加载数据失败:', error);
+        } else if (data) {
+          setFoods(data as FoodItem[]);
+        }
+      } catch (e) {
+        console.error('加载数据异常:', e);
+      } finally {
+        if (!settled) { clearTimeout(timeout); settled = true; setLoading(false); }
       }
-      setLoading(false);
     };
     loadFoods();
   }, []);
