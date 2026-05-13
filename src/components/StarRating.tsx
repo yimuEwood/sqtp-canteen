@@ -27,7 +27,6 @@ const StarRating: React.FC<StarRatingProps> = ({ foodId, initialRating = 0, rati
     const { error } = await supabase.from('ratings').insert([{
       food_id: Number(foodId),
       score,
-      user_id: user.id,
     }]);
     setSubmitting(false);
     if (error) {
