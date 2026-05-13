@@ -139,8 +139,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSignUp, onSignIn }) =>
                 : 'bg-[#1E40AF] hover:bg-[#1E3A8A] text-white'
             }`}
           >
-            {loading ? '处理中...' : mode === 'register' ? '立即注册' : '登 录'}
+            {loading ? '处理中... (请耐心等待)' : mode === 'register' ? '立即注册' : '登 录'}
           </button>
+
+          {loading && (
+            <p className="text-center text-xs text-gray-400">
+              如果长时间无响应，请
+              <button
+                onClick={() => { setLoading(false); setError(''); }}
+                className="text-[#1E40AF] underline ml-1 cursor-pointer"
+              >取消</button>
+            </p>
+          )}
 
           {/* Switch Mode */}
           <p className="text-center text-sm text-gray-500">

@@ -93,62 +93,80 @@ export function useAuth() {
       return { success: false, error: '只允许使用浙大教育邮箱（@zju.edu.cn）注册' };
     }
 
-    const { error, data } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { email_confirm: true },
-      },
-    });
+    // 8 秒超时兜底
+    const timeoutPromise = new Promise<{ success: false; error: string }>(resolve =>
+      setTimeout(() => resolve({ success: false, error: '请求超时，请检查网络连接后重试' }), 8000)
+    );
 
-    if (error) {
-      let errorMsg = error.message;
-      switch (error.status) {
-        case 422:
-          errorMsg = '该邮箱已被注册，请直接登录';
-          break;
-        default:
-          break;
+    const signUpPromise = (async () => {
+      const { error, data } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: { email_confirm: true },
+        },
+      });
+
+      if (error) {
+        let errorMsg = error.message;
+        switch (error.status) {
+          case 422:
+            errorMsg = '该邮箱已被注册，请直接登录';
+            break;
+          default:
+            break;
+        }
+        return { success: false, error: errorMsg };
       }
-      return { success: false, error: errorMsg };
-    }
 
-    // 注册成功后自动创建 profile 记录
-    if (data?.user) {
-      const { error: profileError } = await supabase.from('profiles').insert([{
-        id: data.user.id,
-        email: email,
-        role: 'pending',
-      }]);
-      if (profileError) {
-        console.error('创建 profile 失败:', profileError);
+      // 注册成功后自动创建 profile 记录
+      if (data?.user) {
+        const { error: profileError } = await supabase.from('profiles').insert([{
+          id: data.user.id,
+          email: email,
+          role: 'pending',
+        }]);
+        if (profileError) {
+          console.error('创建 profile 失败:', profileError);
+        }
       }
-    }
 
-    return { success: true, error: '' };
+      return { success: true, error: '' };
+    })();
+
+    return Promise.race([signUpPromise, timeoutPromise]);
   };
 
   // 登录
   const signIn = async (email: string, password: string): Promise<{ success: boolean; error: string }> => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // 8 秒超时兜底
+    const timeoutPromise = new Promise<{ success: false; error: string }>(resolve =>
+      setTimeout(() => resolve({ success: false, error: '请求超时，请检查网络连接后重试' }), 8000)
+    );
 
-    if (error) {
-      let errorMsg = error.message;
-      switch (error.status) {
-        case 400:
-          errorMsg = '邮箱或密码错误，请检查后重试';
-          break;
-        default:
-          break;
+    const signInPromise = (async () => {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        let errorMsg = error.message;
+        switch (error.status) {
+          case 400:
+            errorMsg = '邮箱或密码错误，请检查后重试';
+            break;
+          default:
+            break;
+        }
+        return { success: false, error: errorMsg };
       }
-      return { success: false, error: errorMsg };
-    }
 
-    return { success: true, error: '' };
+      return { success: true, error: '' };
+    })();
+
+    return Promise.race([signInPromise, timeoutPromise]);
   };
 
   // 登出
