@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { pb } from '../lib/pocketbase';
 import type { Profile, FoodProposal } from '../types';
 
 interface AdminPanelProps {
@@ -30,57 +30,48 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const loadProfiles = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (data) setProfiles(data);
+    try {
+      const records = await pb.collection('profiles').getFullList({ sort: '-created' });
+      setProfiles(records as unknown as Profile[]);
+    } catch (e) {
+      console.error('加载用户失败:', e);
+    }
     setLoading(false);
   };
 
   // 批准用户
   const approveUser = async (profileId: string) => {
     if (!confirm('确定批准该用户的编辑权限？')) return;
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: 'approved' })
-      .eq('id', profileId);
-
-    if (!error) {
+    try {
+      await pb.collection('profiles').update(profileId, { role: 'approved' });
       loadProfiles();
       onRefresh();
+    } catch (e) {
+      console.error('批准失败:', e);
     }
   };
 
   // 拒绝/撤销权限
   const rejectUser = async (profileId: string) => {
     if (!confirm('确定撤销该用户的编辑权限？')) return;
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: 'pending' })
-      .eq('id', profileId);
-
-    if (!error) {
+    try {
+      await pb.collection('profiles').update(profileId, { role: 'pending' });
       loadProfiles();
       onRefresh();
+    } catch (e) {
+      console.error('撤销失败:', e);
     }
   };
 
   // 设置管理员
   const setAdmin = async (profileId: string) => {
     if (!confirm('确定将此用户设为管理员？')) return;
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: 'admin' })
-      .eq('id', profileId);
-
-    if (!error) {
+    try {
+      await pb.collection('profiles').update(profileId, { role: 'admin' });
       loadProfiles();
       onRefresh();
+    } catch (e) {
+      console.error('设置管理员失败:', e);
     }
   };
 

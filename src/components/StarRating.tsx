@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { pb } from '../lib/pocketbase';
 
 interface StarRatingProps {
   foodId: string;
@@ -18,23 +18,23 @@ const StarRating: React.FC<StarRatingProps> = ({ foodId, initialRating = 0, rati
   const labelSize = size === 'lg' ? 'text-sm' : size === 'md' ? 'text-xs' : 'text-[11px]';
 
   const handleRate = async (score: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = pb.authStore.model;
     if (!user) {
       alert('请先登录后再评分');
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from('ratings').insert([{
-      food_id: Number(foodId),
-      score,
-    }]);
-    setSubmitting(false);
-    if (error) {
-      alert('评分失败：' + error.message);
-      return;
+    try {
+      await pb.collection('ratings').create({
+        food_id: Number(foodId),
+        score,
+      });
+      setSelected(score);
+      if (onRated) onRated();
+    } catch (e: any) {
+      alert('评分失败：' + (e.message || ''));
     }
-    setSelected(score);
-    if (onRated) onRated();
+    setSubmitting(false);
   };
 
   return (

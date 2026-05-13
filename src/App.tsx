@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { FoodItem, FilterState, FoodProposal } from './types';
-import { supabase } from './lib/supabase';
+import { pb } from './lib/pocketbase';
 import { useAuth } from './hooks/useAuth';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
@@ -74,14 +74,10 @@ const App: React.FC = () => {
 
     const loadFoods = async () => {
       try {
-        const { data, error } = await supabase.from('foods').select('*').order('id');
-        if (error) {
-          console.error('加载数据失败:', error);
-        } else if (data) {
-          setFoods(data as FoodItem[]);
-        }
+        const records = await pb.collection('foods').getFullList({ sort: '+id' });
+        setFoods(records as unknown as FoodItem[]);
       } catch (e) {
-        console.error('加载数据异常:', e);
+        console.error('加载数据失败:', e);
       } finally {
         if (!settled) { clearTimeout(timeout); settled = true; setLoading(false); }
       }
@@ -97,12 +93,11 @@ const App: React.FC = () => {
   }, [isAdmin]);
 
   const loadProposals = async () => {
-    const { data, error } = await supabase
-      .from('food_proposals')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error && data) {
-      setProposals(data as FoodProposal[]);
+    try {
+      const records = await pb.collection('food_proposals').getFullList({ sort: '-created' });
+      setProposals(records as unknown as FoodProposal[]);
+    } catch (e) {
+      console.error('加载申请失败:', e);
     }
   };
 
@@ -156,13 +151,12 @@ const App: React.FC = () => {
 
     console.log('提交申请数据:', JSON.stringify(proposalData, null, 2));
 
-    const { error } = await supabase.from('food_proposals').insert([proposalData]);
-
-    if (error) {
-      console.error('提交申请失败:', error);
-      alert('提交申请失败：' + error.message + '，请重试');
-    } else {
+    try {
+      await pb.collection('food_proposals').create(proposalData);
       alert('已提交申请，等待管理员审批后生效');
+    } catch (e: any) {
+      console.error('提交申请失败:', e);
+      alert('提交申请失败：' + (e.message || '未知错误') + '，请重试');
     }
   };
 
@@ -176,8 +170,7 @@ const App: React.FC = () => {
     // 管理员：直接操作
     if (isAdmin) {
       if (isAdding) {
-        const { data, error } = await supabase.from('foods').insert([{
-          id: item.id ? Number(item.id) : Date.now(),
+        const record = await pb.collection('foods').create({
           name: item.name,
           category: item.category,
           canteen: item.canteen,
@@ -192,15 +185,10 @@ const App: React.FC = () => {
           sodium: item.sodium,
           nutritionScore: item.nutritionScore,
           valueScore: item.valueScore,
-        }]).select();
-        if (error) {
-          console.error('添加失败:', error);
-          alert('添加失败，请重试');
-          return;
-        }
-        if (data) setFoods(prev => [...prev, ...data as FoodItem[]]);
+        });
+        setFoods(prev => [...prev, record as unknown as FoodItem]);
       } else {
-        const { error } = await supabase.from('foods').update({
+        await pb.collection('foods').update(item.id, {
           name: item.name,
           category: item.category,
           canteen: item.canteen,
@@ -215,12 +203,7 @@ const App: React.FC = () => {
           sodium: item.sodium,
           nutritionScore: item.nutritionScore,
           valueScore: item.valueScore,
-        }).eq('id', Number(item.id));
-        if (error) {
-          console.error('更新失败:', error);
-          alert('更新失败，请重试');
-          return;
-        }
+        });
         setFoods(prev => prev.map(f => f.id === item.id ? item : f));
       }
       setIsAdding(false);
@@ -247,13 +230,13 @@ const App: React.FC = () => {
     // 管理员：直接删除
     if (isAdmin) {
       if (!confirm('确认删除该餐品记录？')) return;
-      const { error } = await supabase.from('foods').delete().eq('id', Number(id));
-      if (error) {
-        console.error('删除失败:', error);
-        alert('删除失败，请重试');
-        return;
+      try {
+        await pb.collection('foods').delete(id);
+        setFoods(prev => prev.filter(f => String(f.id) !== String(id)));
+      } catch (e: any) {
+        console.error('删除失败:', e);
+        alert('删除失败：' + (e.message || '请重试'));
       }
-      setFoods(prev => prev.filter(f => String(f.id) !== String(id)));
       return;
     }
 
@@ -265,34 +248,59 @@ const App: React.FC = () => {
   // ========== 管理员审批==========
   const handleApproveProposal = async (proposalId: string) => {
     if (!isAdmin) return;
-    const { error } = await supabase.rpc('apply_food_proposal', { proposal_id: proposalId });
-    if (error) {
-      console.error('审批失败:', error);
-      alert('审批失败：' + error.message);
-      return;
+    try {
+      const proposal = await pb.collection('food_proposals').getOne(proposalId);
+      const d = proposal.data || {};
+
+      if (proposal.action === 'create') {
+        await pb.collection('foods').create({
+          name: d.name, category: d.category, canteen: d.canteen,
+          area: d.area || null, window: d.window || '',
+          price: d.price, calories: d.calories, protein: d.protein,
+          fat: d.fat, carbs: d.carbs, fiber: d.fiber ?? 0,
+          sodium: d.sodium ?? 0, nutritionScore: d.nutritionScore ?? 0,
+          valueScore: d.valueScore ?? 0,
+        });
+      } else if (proposal.action === 'update' && proposal.food_id) {
+        await pb.collection('foods').update(proposal.food_id, {
+          name: d.name, category: d.category, canteen: d.canteen,
+          area: d.area || null, window: d.window || '',
+          price: d.price, calories: d.calories, protein: d.protein,
+          fat: d.fat, carbs: d.carbs, fiber: d.fiber ?? 0,
+          sodium: d.sodium ?? 0, nutritionScore: d.nutritionScore ?? 0,
+          valueScore: d.valueScore ?? 0,
+        });
+      } else if (proposal.action === 'delete' && proposal.food_id) {
+        await pb.collection('foods').delete(proposal.food_id);
+      }
+
+      await pb.collection('food_proposals').update(proposalId, {
+        status: 'approved',
+      });
+
+      alert('审批通过，操作已生效');
+      loadProposals();
+      const records = await pb.collection('foods').getFullList({ sort: '+id' });
+      setFoods(records as unknown as FoodItem[]);
+    } catch (e: any) {
+      console.error('审批失败:', e);
+      alert('审批失败：' + (e.message || ''));
     }
-    alert('审批通过，操作已生效');
-    loadProposals();
-    // 重新加载 foods
-    const { data } = await supabase.from('foods').select('*').order('id');
-    if (data) setFoods(data as FoodItem[]);
   };
 
   const handleRejectProposal = async (proposalId: string, note: string) => {
     if (!isAdmin) return;
-    const { error } = await supabase.from('food_proposals').update({
-      status: 'rejected',
-      admin_note: note,
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: user!.id,
-    }).eq('id', proposalId);
-    if (error) {
-      console.error('拒绝失败:', error);
+    try {
+      await pb.collection('food_proposals').update(proposalId, {
+        status: 'rejected',
+        admin_note: note,
+      });
+      alert('已拒绝该申请');
+      loadProposals();
+    } catch (e: any) {
+      console.error('拒绝失败:', e);
       alert('操作失败，请重试');
-      return;
     }
-    alert('已拒绝该申请');
-    loadProposals();
   };
 
   const handleAddNew = () => {
@@ -453,10 +461,11 @@ const App: React.FC = () => {
             canEdit={canEdit}
             onRated={() => {
               // 评分后刷新数据
-              setTimeout(() => {
-                supabase.from('foods').select('*').order('id').then(({ data }) => {
-                  if (data) setFoods(data as FoodItem[]);
-                });
+              setTimeout(async () => {
+                try {
+                  const records = await pb.collection('foods').getFullList({ sort: '+id' });
+                  setFoods(records as unknown as FoodItem[]);
+                } catch (e) {}
               }, 500);
             }}
           />
