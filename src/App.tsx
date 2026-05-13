@@ -11,6 +11,8 @@ import ChartsSection from './components/ChartsSection';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import AdminPanel from './components/AdminPanel';
+import TopRatedFoods from './components/TopRatedFoods';
+import StarRating from './components/StarRating';
 
 type Page = 'home' | 'data' | 'charts' | 'about' | 'admin';
 
@@ -345,6 +347,7 @@ const App: React.FC = () => {
         <>
           <HeroSection setPage={setPage} />
           <StatsSection foods={foods} />
+          <TopRatedFoods foods={foods} onViewData={() => setPage('data')} />
           <ChartsSection foods={foods} />
         </>
       )}
@@ -448,6 +451,14 @@ const App: React.FC = () => {
             }}
             onDelete={handleDelete}
             canEdit={canEdit}
+            onRated={() => {
+              // 评分后刷新数据
+              setTimeout(() => {
+                supabase.from('foods').select('*').order('id').then(({ data }) => {
+                  if (data) setFoods(data as FoodItem[]);
+                });
+              }, 500);
+            }}
           />
         </div>
       )}

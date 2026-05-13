@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { FoodItem } from '../types';
+import StarRating from './StarRating';
 
 interface FoodTableProps {
   foods: FoodItem[];
   onEdit: (item: FoodItem) => void;
   onDelete: (id: string) => void;
   canEdit?: boolean;
+  onRated?: () => void;
 }
 
 type SortKey = keyof FoodItem;
 
-const FoodTable: React.FC<FoodTableProps> = ({ foods, onEdit, onDelete, canEdit = true }) => {
+const FoodTable: React.FC<FoodTableProps> = ({ foods, onEdit, onDelete, canEdit = true, onRated }) => {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortAsc, setSortAsc] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -198,6 +200,16 @@ const FoodTable: React.FC<FoodTableProps> = ({ foods, onEdit, onDelete, canEdit 
                             <span className="text-gray-400 text-xs">备注</span>
                             <p className="text-gray-600">{food.notes}</p>
                           </div>
+                        )}
+                      </div>
+                      {/* 评分区域 */}
+                      <div className="mt-4 pt-3 border-t border-blue-100/60 flex items-center gap-3">
+                        <span className="text-xs text-gray-500">我的评分：</span>
+                        <StarRating foodId={food.id} initialRating={0} ratingCount={0} size="md" onRated={onRated} />
+                        {(food.avg_rating ?? 0) > 0 && (
+                          <span className="text-xs text-gray-400 ml-2">
+                            平均 {(food.avg_rating ?? 0).toFixed(1)} 分 · {food.rating_count ?? 0} 人评
+                          </span>
                         )}
                       </div>
                     </td>

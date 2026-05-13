@@ -15,6 +15,8 @@ export interface FoodItem {
   sodium: number;       // mg
   valueScore: number;   // kcal/元（性价比）
   nutritionScore: number; // 0-100
+  avg_rating?: number;   // 平均评分 0-5
+  rating_count?: number; // 评分人数
   notes: string;
 }
 
@@ -36,6 +38,15 @@ export interface FilterState {
   minCalories: number;
   maxCalories: number;
   searchQuery: string;
+}
+
+// 用户评分记录
+export interface Rating {
+  id: number;
+  food_id: number;
+  score: number;
+  created_at: string;
+  user_id?: string;
 }
 
 // 餐品变更申请
