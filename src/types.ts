@@ -3,16 +3,17 @@ export interface FoodItem {
   name: string;
   category: string;
   canteen: string;
+  area?: string;        // 子分区，如"风味""一楼A区"
   window: string;
-  price: number; // grams
-  weight: number; // grams
-  calories: number; // kcal
-  protein: number; // g
-  fat: number; // g
-  carbs: number; // g
-  fiber: number; // g
-  sodium: number; // mg
-  valueScore: number; // calories per yuan
+  price: number;        // 元
+  weight: number;       // 克
+  calories: number;     // kcal
+  protein: number;      // g
+  fat: number;          // g
+  carbs: number;        // g
+  fiber: number;        // g
+  sodium: number;       // mg
+  valueScore: number;   // kcal/元（性价比）
   nutritionScore: number; // 0-100
   notes: string;
 }
@@ -30,6 +31,7 @@ export type SortOrder = 'asc' | 'desc';
 export interface FilterState {
   category: string;
   canteen: string;
+  area: string;
   maxPrice: number;
   minCalories: number;
   maxCalories: number;
@@ -46,6 +48,7 @@ export interface FoodProposal {
     name: string;
     category: string;
     canteen: string;
+    area?: string;
     window: string;
     price: number;
     calories: number;

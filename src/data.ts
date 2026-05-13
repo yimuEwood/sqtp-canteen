@@ -5,7 +5,8 @@ export const initialFoodData: FoodItem[] = [
     id: '1',
     name: '红烧肉饭',
     category: '荤菜盖饭',
-    canteen: '第一食堂',
+    canteen: '大食堂',
+    area: '风味',
     window: '荤菜窗口',
     price: 8.0,
     weight: 350,
@@ -221,3 +222,15 @@ export const initialFoodData: FoodItem[] = [
 
 export const categories = [...new Set(initialFoodData.map(f => f.category))];
 export const canteens = [...new Set(initialFoodData.map(f => f.canteen))];
+
+// 完整浙大食堂分类体系（用于前端展示和筛选）
+export const CANTEEN_GROUPS = [
+  { canteen: '大食堂', areas: ['风味', '休闲', '东区', '西区', '民族', '三楼'] },
+  { canteen: '临湖', areas: ['一楼', '二楼'] },
+  { canteen: '麦香', areas: [] },
+  { canteen: '交叉中心', areas: [] },
+  { canteen: '澄月', areas: ['一楼', '二楼', '三楼'] },
+  { canteen: '玉湖', areas: ['一楼', '二楼'] },
+  { canteen: '银泉', areas: ['一楼A区', '一楼B区', '速选', '自选', '西北风味', '小乐惠', '食天一隅'] },
+  { canteen: '东二麦斯威', areas: [] },
+];

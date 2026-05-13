@@ -36,7 +36,7 @@ const Footer: React.FC = () => (
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1 w-1 h-1 rounded-full bg-[#FCD34D] flex-shrink-0" />
-              营养评分：综合热量、蛋白质、性价比等多维度
+              覆盖食堂：大食堂（风味、休闲、东区、西区、民族、三楼）、临湖、麦香、交叉中心、澄月、玉湖、银泉、东二麦斯威
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1 w-1 h-1 rounded-full bg-emerald-400 flex-shrink-0" />

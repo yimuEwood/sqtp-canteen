@@ -15,7 +15,19 @@ import AdminPanel from './components/AdminPanel';
 type Page = 'home' | 'data' | 'charts' | 'about' | 'admin';
 
 const CATEGORIES = ['荤菜盖饭', '素菜', '荤菜', '面食', '蛋类', '汤类/火锅', '豆制品', '凉菜'];
-const CANTEENS = ['第一食堂', '第二食堂', '第三食堂'];
+
+// 浙大食堂分类体系
+const CANTEEN_GROUPS = [
+  { canteen: '大食堂', areas: ['风味', '休闲', '东区', '西区', '民族', '三楼'] },
+  { canteen: '临湖', areas: ['一楼', '二楼'] },
+  { canteen: '麦香', areas: [] },
+  { canteen: '交叉中心', areas: [] },
+  { canteen: '澄月', areas: ['一楼', '二楼', '三楼'] },
+  { canteen: '玉湖', areas: ['一楼', '二楼'] },
+  { canteen: '银泉', areas: ['一楼A区', '一楼B区', '速选', '自选', '西北风味', '小乐惠', '食天一隅'] },
+  { canteen: '东二麦斯威', areas: [] },
+];
+const CANTEENS = CANTEEN_GROUPS.map(g => g.canteen);
 
 const App: React.FC = () => {
   const [page, setPage] = useState<Page>('home');
@@ -27,6 +39,7 @@ const App: React.FC = () => {
   const [filter, setFilter] = useState<FilterState>({
     category: '',
     canteen: '',
+    area: '',
     maxPrice: 30,
     minCalories: 0,
     maxCalories: 1000,
@@ -95,6 +108,7 @@ const App: React.FC = () => {
     return foods.filter(f => {
       if (filter.category && f.category !== filter.category) return false;
       if (filter.canteen && f.canteen !== filter.canteen) return false;
+      if (filter.area && f.area !== filter.area) return false;
       if (f.price > filter.maxPrice) return false;
       if (f.calories < filter.minCalories || f.calories > filter.maxCalories) return false;
       if (filter.searchQuery && !f.name.toLowerCase().includes(filter.searchQuery.toLowerCase())) return false;
@@ -113,6 +127,7 @@ const App: React.FC = () => {
       name: item.name,
       category: item.category,
       canteen: item.canteen,
+      area: item.area || '',
       window: item.window || '',
       price: item.price,
       calories: item.calories,
@@ -164,6 +179,7 @@ const App: React.FC = () => {
           name: item.name,
           category: item.category,
           canteen: item.canteen,
+          area: item.area || null,
           window: item.window,
           price: item.price,
           calories: item.calories,
@@ -186,6 +202,7 @@ const App: React.FC = () => {
           name: item.name,
           category: item.category,
           canteen: item.canteen,
+          area: item.area || null,
           window: item.window,
           price: item.price,
           calories: item.calories,
@@ -287,6 +304,7 @@ const App: React.FC = () => {
       name: '',
       category: CATEGORIES[0],
       canteen: CANTEENS[0],
+      area: '',
       window: '',
       price: 0,
       weight: 0,
@@ -362,7 +380,7 @@ const App: React.FC = () => {
 
           {/* Filters */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">搜索餐品</label>
                 <input
@@ -388,11 +406,25 @@ const App: React.FC = () => {
                 <label className="block text-xs font-medium text-gray-500 mb-1">食堂</label>
                 <select
                   value={filter.canteen}
-                  onChange={e => setFilter(f => ({ ...f, canteen: e.target.value }))}
+                  onChange={e => setFilter(f => ({ ...f, canteen: e.target.value, area: '' }))}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6] cursor-pointer"
                 >
                   <option value="">全部食堂</option>
                   {CANTEENS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">分区</label>
+                <select
+                  value={filter.area}
+                  onChange={e => setFilter(f => ({ ...f, area: e.target.value }))}
+                  disabled={!filter.canteen || !(CANTEEN_GROUPS.find(g => g.canteen === filter.canteen)?.areas.length)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">全部分区</option>
+                  {(CANTEEN_GROUPS.find(g => g.canteen === filter.canteen)?.areas || []).map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
                 </select>
               </div>
               <div>

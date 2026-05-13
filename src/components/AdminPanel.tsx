@@ -188,7 +188,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     {proposal.data && (
                       <div className="mt-2 p-3 bg-gray-50 rounded-md text-sm space-y-1">
                         <p><span className="text-gray-500">名称：</span>{proposal.data.name}</p>
-                        <p><span className="text-gray-500">食堂：</span>{proposal.data.canteen} / <span className="text-gray-500">分类：</span>{proposal.data.category}</p>
+                        <p><span className="text-gray-500">食堂：</span>{proposal.data.canteen}{proposal.data.area ? ` · ${proposal.data.area}` : ''} / <span className="text-gray-500">分类：</span>{proposal.data.category}</p>
                         <p><span className="text-gray-500">价格：¥</span>{proposal.data.price} · 热量：<span className="font-medium text-[#F59E0B]">{proposal.data.calories} kcal</span></p>
                         <p className="text-xs text-gray-400 mt-1">蛋白质{proposal.data.protein}g · 脂肪{proposal.data.fat}g · 碳水{proposal.data.carbs}g</p>
                       </div>

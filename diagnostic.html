@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据库诊断工具</title>
+  <style>
+    body { font-family: system-ui; max-width: 800px; margin: 40px auto; padding: 20px; }
+    .card { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 10px 0; }
+    .success { color: green; }
+    .error { color: red; }
+    .warning { color: orange; }
+    pre { background: #333; color: #0f0; padding: 15px; border-radius: 4px; overflow-x: auto; }
+    button { background: #1E40AF; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+    button:hover { background: #1E3A8A; }
+  </style>
+</head>
+<body>
+  <h1>🔧 数据库诊断工具</h1>
+  <p>在 <strong>餐品数据页面</strong> 按 F12 打开控制台，复制显示的错误信息到此处</p>
+
+  <div class="card">
+    <h3>诊断步骤：</h3>
+    <ol>
+      <li>打开 <a href="https://zjucanteen.top" target="_blank">zjucanteen.top</a></li>
+      <li>用管理员账号登录 (3240103558@zju.edu.cn)</li>
+      <li>进入"餐品数据"页面</li>
+      <li>点击"添加餐品"按钮</li>
+      <li>填写信息并提交</li>
+      <li>如果失败，按 F12 查看控制台错误</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>常见问题：</h3>
+    <h4 class="warning">1. 错误：new row violates row-level security policy</h4>
+    <p>原因：profiles表中该用户的role不是'admin'</p>
+    <p>解决：去Supabase Dashboard -> Table Editor -> profiles表，检查管理员账号的role字段</p>
+
+    <h4 class="warning">2. 错误：duplicate key</h4>
+    <p>原因：插入时指定了ID但ID已存在</p>
+    <p>解决：代码中不应手动指定ID，让数据库自动生成</p>
+  </div>
+
+  <div class="card">
+    <h3>Supabase Dashboard 检查步骤：</h3>
+    <ol>
+      <li>打开 <a href="https://supabase.com/dashboard" target="_blank">Supabase Dashboard</a></li>
+      <li>选择项目 imewztdgharjzcrwibsa</li>
+      <li>左侧菜单选择 <strong>Table Editor</strong></li>
+      <li>点击 <strong>profiles</strong> 表</li>
+      <li>找到您的管理员账号，确认 <strong>role</strong> 列显示为 <strong>admin</strong></li>
+      <li>如果没有记录或role不对，需要修复</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>快速修复 SQL（需要执行）：</h3>
+    <p>如果profiles表中管理员记录缺失或role不对，在Supabase SQL Editor中执行：</p>
+    <pre>-- 先查询管理员邮箱对应的user_id
+SELECT id, email FROM auth.users WHERE email = '3240103558@zju.edu.cn';
+
+-- 然后更新或插入profiles记录
+INSERT INTO public.profiles (id, email, role)
+VALUES ('上面查询到的user_id', '3240103558@zju.edu.cn', 'admin')
+ON CONFLICT (id) DO UPDATE SET role = 'admin';</pre>
+  </div>
+</body>
+</html>

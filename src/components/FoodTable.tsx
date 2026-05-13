@@ -51,6 +51,7 @@ const FoodTable: React.FC<FoodTableProps> = ({ foods, onEdit, onDelete, canEdit 
   const columns: { key: SortKey; label: string; sortable?: boolean }[] = [
     { key: 'name', label: '餐品名称', sortable: true },
     { key: 'canteen', label: '食堂', sortable: true },
+    { key: 'area' as SortKey, label: '分区', sortable: true },
     { key: 'category', label: '分类', sortable: true },
     { key: 'price', label: '价格(¥)', sortable: true },
     { key: 'calories', label: '热量(kcal)', sortable: true },
@@ -113,6 +114,11 @@ const FoodTable: React.FC<FoodTableProps> = ({ foods, onEdit, onDelete, canEdit 
                   </td>
                   <td className="px-4 py-3 text-gray-600">{food.canteen}</td>
                   <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${food.area ? 'bg-purple-50 text-purple-600' : 'text-gray-300'}`}>
+                      {food.area || '-'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
                     <span className="bg-blue-50 text-[#1E40AF] text-xs px-2 py-0.5 rounded-full">{food.category}</span>
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-700">¥{food.price.toFixed(1)}</td>
@@ -165,11 +171,15 @@ const FoodTable: React.FC<FoodTableProps> = ({ foods, onEdit, onDelete, canEdit 
                 </tr>
                 {expandedId === food.id && (
                   <tr className="bg-blue-50/40">
-                    <td colSpan={11} className="px-8 py-4">
+                    <td colSpan={12} className="px-8 py-4">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
+                          <span className="text-gray-400 text-xs">食堂 · 分区</span>
+                          <p className="font-medium text-[#1E3A8A]">{food.canteen}{food.area ? ` · ${food.area}` : ''}</p>
+                        </div>
+                        <div>
                           <span className="text-gray-400 text-xs">窗口</span>
-                          <p className="font-medium text-[#1E3A8A]">{food.window}</p>
+                          <p className="font-medium text-[#1E3A8A]">{food.window || '-'}</p>
                         </div>
                         <div>
                           <span className="text-gray-400 text-xs">重量</span>

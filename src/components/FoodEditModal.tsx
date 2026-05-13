@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
 import { FoodItem } from '../types';
-import { categories, canteens } from '../data';
+import { categories } from '../data';
+
+const CANTEEN_GROUPS = [
+  { canteen: '大食堂', areas: ['风味', '休闲', '东区', '西区', '民族', '三楼'] },
+  { canteen: '临湖', areas: ['一楼', '二楼'] },
+  { canteen: '麦香', areas: [] },
+  { canteen: '交叉中心', areas: [] },
+  { canteen: '澄月', areas: ['一楼', '二楼', '三楼'] },
+  { canteen: '玉湖', areas: ['一楼', '二楼'] },
+  { canteen: '银泉', areas: ['一楼A区', '一楼B区', '速选', '自选', '西北风味', '小乐惠', '食天一隅'] },
+  { canteen: '东二麦斯威', areas: [] },
+];
+const CANTEENS = CANTEEN_GROUPS.map(g => g.canteen);
 
 interface FoodEditModalProps {
   item: FoodItem;
@@ -79,11 +91,23 @@ const FoodEditModal: React.FC<FoodEditModalProps> = ({ item, isNew, onSave, onCl
                 <label className="block text-xs font-medium text-gray-500 mb-1">食堂</label>
                 <select
                   value={form.canteen}
-                  onChange={e => setForm(prev => ({ ...prev, canteen: e.target.value }))}
+                  onChange={e => setForm(prev => ({ ...prev, canteen: e.target.value, area: '' }))}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6] cursor-pointer"
                 >
-                  {canteens.map(c => <option key={c} value={c}>{c}</option>)}
-                  <option value="其他食堂">其他食堂</option>
+                  {CANTEENS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">分区（可选）</label>
+                <select
+                  value={form.area || ''}
+                  onChange={e => setForm(prev => ({ ...prev, area: e.target.value || undefined }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3B82F6] cursor-pointer"
+                >
+                  <option value="">无分区</option>
+                  {(CANTEEN_GROUPS.find(g => g.canteen === form.canteen)?.areas || []).map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
                 </select>
               </div>
               <Field label="窗口" name="window" value={form.window} onChange={handleChange} />
